@@ -1,0 +1,58 @@
+{%extends 'base.html'%}
+{%block navbar%}
+{%endblock%}
+{%block content%}
+<style>
+    main {
+        align-items: center;
+        align-content: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        gap: 25px;
+        margin-top: 50px;
+    }
+    input {
+        border-radius: .25rem;
+    }
+    .login-section {
+        display: flex;
+        justify-content: flex-end;
+        gap: 5px;
+        margin: 5px;
+    }
+    #login-btn {
+        background-color: inherit;
+        border: 1px solid;
+        border-color: #ffe1b2;
+        color: #ffe1b2;
+        line-height: 1.5;
+    }
+    #login-btn:hover {
+        color: #22242f;
+        background-color: #ffe1b2;
+    }
+</style>
+<main role="main">
+    <div class="jumbotron">
+        <div class="container">
+            <h1>Login</h1>
+        </div>
+    </div>
+    <div class="container login-section">
+        <form name="login-form" method="post" accept-charset="utf-8">
+            <div class="login-section">
+                <b><label class="form-label" for="name">User Name or Email</label></b>
+                <input class="form-control" id="name" name="name" type="text" required>
+            </div>
+            <div class="login-section">
+                <b><label class="form-label" for="password">Password</label></b>
+                <input class="form-control" id="password" name="password" type="password" required>
+            </div>
+            <div class="login-section">
+                <input id="login-btn" name="action" type="submit" value="login">
+            </div>
+        </form>
+    </div>
+</main>
+{%endblock%}

@@ -1,0 +1,39 @@
+{%extends 'base.html'%}
+{%block navbar%}
+<ul>
+  <li>
+    <span class="user name">Samurai</span>
+    on
+    <span class="team name">侍</span>
+  </li>
+  <li><a href="/scoreboard">Scoreboard</a></li>
+</ul>
+{%endblock%}
+{%block content%}
+<main class="container">
+  <p class="alert alert-info" role="alert"></p>
+  <p class="alert alert-danger" role="alert"></p>
+<h1>Availabilities</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>round</th>
+      <th>service</th>
+      <th>was available?</th>
+    </tr>
+  </thead>
+  <tbody>
+  {%for round, sla in availabilities|dictsort(reverse=True)%}
+    {%for service, available in sla.items()%}
+    <tr>
+      <td>{{round}}</td>
+      <td>{{service}} sla</td>
+      <td>{{available}}</td>
+    </tr>
+    {%endfor%}
+  {%endfor%}
+  </tbody>
+</table>
+</main>
+{%endblock%}

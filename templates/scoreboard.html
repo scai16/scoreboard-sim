@@ -1,0 +1,38 @@
+{%extends 'base.html'%}
+{%block navbar%}
+<ul>
+  <li>
+    <span class="user name">Samurai</span>
+    on
+    <span class="team name">侍</span>
+  </li>
+  <li><a href="/availability">Availability</a></li>
+</ul>
+{%endblock%}
+{%block content%}
+<main data-phx-main="true" data-phx-session="SFMyNTY.g2gDaAJhBXQAAAAIZAACaWRtAAAAFHBoeC1Gd3JGQTloSDZaYWFoYzBoZAAMbGl2ZV9zZXNzaW9uaAJkAAdkZWZhdWx0bggAqeL1l9DDChdkAApwYXJlbnRfcGlkZAADbmlsZAAIcm9vdF9waWRkAANuaWxkAAlyb290X3ZpZXdkACVFbGl4aXIuWmVwaHlyV2ViLlNjb3JlYm9hcmRMaXZlLkluZGV4ZAAGcm91dGVyZAAXRWxpeGlyLlplcGh5cldlYi5Sb3V0ZXJkAAdzZXNzaW9udAAAAABkAAR2aWV3ZAAlRWxpeGlyLlplcGh5cldlYi5TY29yZWJvYXJkTGl2ZS5JbmRleG4GAMF57pSCAWIAAVGA.nL_eV3GrM6k8vq686jx8dotf12NePleWLlm2JAJUVsE" data-phx-static="SFMyNTY.g2gDaAJhBXQAAAADZAAKYXNzaWduX25ld2pkAAVmbGFzaHQAAAAAZAACaWRtAAAAFHBoeC1Gd3JGQTloSDZaYWFoYzBobgYAwXnulIIBYgABUYA.ZEhOtlEEEFQ5tmcVdngUpy4EqZBZdZqb-f6zqIfvs14" class="phx-connected" data-phx-root-id="phx-FwrFA9hH6Zaahc0h"><p class="alert alert-info" role="alert" phx-click="lv:clear-flash" phx-value-key="info"></p>
+
+<p class="alert alert-danger" role="alert" phx-click="lv:clear-flash" phx-value-key="error"></p>
+<h1>Scoreboard</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Rank</th>
+      <th>Name</th>
+      <th>Score</th>
+    </tr>
+  </thead>
+  <tbody>
+    {%for name, score in scores|dictsort(by='value', reverse=True)%}
+        <tr>
+          <td>{{loop.index}}</td>
+          <td>{{name}}</td>
+          <td>{{score}}</td>
+        </tr>
+    {%endfor%}
+  </tbody>
+</table></main>
+  
+<canvas style="position: fixed; padding: 0px; margin: 0px; right: 0px; left: 0px; top: 0px; z-index: 100001; display: none; opacity: 0.05;" width="1554" height="15"></canvas>
+{%endblock%}
