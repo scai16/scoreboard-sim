@@ -196,11 +196,10 @@ async def start_simulation():
     if now.minute or now.second:
         start_time = now.replace(minute=0, second=0, microsecond=0) \
                      + timedelta(hours=1)
-        startftime = start_time.strftime('%Y-%m-%d %X UTC+00:00')
         delay = (start_time - now).seconds
-        logging.info(
-            f"Starting simulation in {delay//60}:{delay%60} at {startftime}"
-        )
+        startftime = start_time.strftime('%Y-%m-%d %X UTC+00:00')
+        delayftime = f'{delay//60:02d}:{delay%60:02d}'
+        logging.info(f"Starting simulation in {delayftime} at {startftime}")
     else:
         delay = None
     asyncio.create_task(scoreboard.simulate_scoreboard(delay=delay))
