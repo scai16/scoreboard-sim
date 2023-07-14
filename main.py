@@ -1,7 +1,8 @@
 import asyncio
 import logging
+import uvicorn
 from datetime import datetime, timedelta
-from fastapi import Body, FastAPI, Request, Response
+from fastapi import FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from random import choice, randint
