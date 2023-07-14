@@ -1,14 +1,17 @@
 import asyncio
 import logging
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from datetime import datetime, timedelta
+from fastapi import Body, FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from random import choice, randint
-from time import gmtime, strftime, time
+from time import time
 
 
-app = FastAPI(docs_url=None, redoc_url=None)
+app = FastAPI(
+    docs_url=None,
+    redoc_url=None,
+)
 app.mount('/static', StaticFiles(directory='static'), name='static')
 templates = Jinja2Templates(directory='templates')
 
@@ -26,17 +29,26 @@ def repeat_every(seconds=0, minutes=0, hours=0, run_first=True):
     def repeat_task(func):
         async def wrapper(*args, **kwargs):
             interval = seconds + minutes*60 + hours*60*60
+            if interval == 0:
+                raise ValueError('Interval cannot be 0')
             driftoffset = int(time()) % interval
             if run_first:
                 asyncio.create_task(func(*args, **kwargs))
-            while True:
-                offset = int(time()) % interval
-                if (driftoffset+1) % interval == offset:
-                    logging.debug(f'Adjusting {func.__name__} for time drift')
-                    await asyncio.sleep(interval-1)
-                else:
+            if interval == 1:
+                while True:
                     await asyncio.sleep(interval)
-                asyncio.create_task(func(*args, **kwargs))
+                    asyncio.create_task(func(*args, **kwargs))
+            else:
+                while True:
+                    offset = int(time()) % interval
+                    if (driftoffset+1) % interval == offset:
+                        logging.debug(
+                            f'Adjusting {func.__name__} for time drift'
+                        )
+                        await asyncio.sleep(interval-1)
+                    else:
+                        await asyncio.sleep(interval)
+                    asyncio.create_task(func(*args, **kwargs))
         return wrapper
     return repeat_task
 
@@ -79,11 +91,14 @@ class Scoreboard:
         inactive_services = set(self._all_services)-set(self._active_services)
         if inactive_services:
             service = choice(list(inactive_services))
+            logging.debug(f'Adding service: {service}')
             self._pending_services.append(service)
 
     async def _remove_random_service(self):
         if len(self._active_services) > 1:
-            self._active_services.remove(choice(self._active_services))
+            service = choice(self._active_services)
+            logging.debug(f'Removing service: {service}')
+            self._active_services.remove(service)
 
     @repeat_every(minutes=10)
     async def _generate_round(self):
@@ -99,7 +114,7 @@ class Scoreboard:
             round_sla[new_service] = 'true'
             self._active_services.append(new_service)
         self.availabilities[len(self.availabilities)+1] = round_sla
-    
+
     @repeat_every(minutes=5, run_first=False)
     async def _update_scores(self):
         logging.info('Updating scoreboard')
@@ -137,7 +152,10 @@ class Scoreboard:
                 elif change > 89:
                     await self._add_random_service()
 
-    def simulate_scoreboard(self):
+    async def simulate_scoreboard(self, delay=None):
+        if delay:
+            await asyncio.sleep(delay)
+        logging.info(f'Starting simulation')
         tasks = [
             self._generate_round,
             self._update_scores,
@@ -151,38 +169,41 @@ class Scoreboard:
             task.cancel()
 
 
+def check_authorization(request):
+    token = request.cookies.get('supersecuretoken')
+    if token == 'c3VwZXJzZWN1cmVhdXRob3JpemF0aW9udG9rZW4=':
+        return True
+    else:
+        return False
+
+
 @app.on_event('startup')
 async def start_simulation():
-    scoreboard.simulate_scoreboard()
+    logging.basicConfig(
+        datefmt='%Y-%m-%d %X',
+        format='%(asctime)s.%(msecs)03d [%(levelname)s] %(message)s',
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(
+                f"app_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}.log",
+                mode='w'),
+        ],
+        level=logging.DEBUG,
+    )
 
-
-@app.get('/login', response_class=HTMLResponse)
-@app.get('/login.html', response_class=HTMLResponse)
-async def scoreboard(request: Request):
-    ctx = {
-        'request': request,
-    }
-    return templates.TemplateResponse('login.html', ctx)
-
-
-@app.get('/availability', response_class=HTMLResponse)
-@app.get('/availability.html', response_class=HTMLResponse)
-async def availability(request: Request):
-    ctx = {
-        'request': request,
-        'availabilities': scoreboard.availabilities,
-    }
-    return templates.TemplateResponse('availability.html', ctx)
-
-
-@app.get('/scoreboard', response_class=HTMLResponse)
-@app.get('/scoreboard.html', response_class=HTMLResponse)
-async def scoreboard(request: Request):
-    ctx = {
-        'request': request,
-        'scores': scoreboard.scores,
-    }
-    return templates.TemplateResponse('scoreboard.html', ctx)
+    # UTC time to start simulation
+    now = datetime.utcnow()
+    if now.minute or now.second:
+        start_time = now.replace(minute=0, second=0, microsecond=0) \
+                     + timedelta(hours=1)
+        startftime = start_time.strftime('%Y-%m-%d %X UTC+00:00')
+        delay = (start_time - now).seconds
+        logging.info(
+            f"Starting simulation in {delay//60}:{delay%60} at {startftime}"
+        )
+    else:
+        delay = None
+    asyncio.create_task(scoreboard.simulate_scoreboard(delay=delay))
 
 
 @app.on_event('shutdown')
@@ -191,18 +212,78 @@ async def end_simulation():
     logging.shutdown()
 
 
-print('Waiting until the next minute to start.')
-while gmtime().tm_sec:
-    pass
+@app.get('/login')
+@app.get('/login.html')
+async def login(request: Request):
+    ctx = {
+        'request': request,
+    }
+    return templates.TemplateResponse('login.html', ctx)
 
-logging.basicConfig(
-    datefmt='%Y-%m-%d %H:%M:%S',
-    format='%(asctime)s.%(msecs)03d [%(levelname)s] %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler(f"app_{strftime('%Y%m%d%H%M%S')}.log", mode='w'),
-    ],
-    level=logging.DEBUG,
-)
+
+@app.post('/login')
+@app.post('/login.html')
+async def check_login(request: Request, response: Response):
+    body = await request.body()
+    form = dict(params.split(b'=') for params in body.split(b'&'))
+    if form[b'action'] == b'login' \
+            and form[b'name'] == b'user' \
+            and form[b'password'] == b'password':
+        response.set_cookie(
+            key='supersecuretoken',
+            value='c3VwZXJzZWN1cmVhdXRob3JpemF0aW9udG9rZW4='
+        )
+        response.status_code=302
+        response.headers['location'] = 'scoreboard'
+        return response
+    else:
+        ctx = {
+            'request': request,
+        }
+        return templates.TemplateResponse('login.html', ctx)
+
+
+@app.get('/availability')
+@app.get('/availability.html')
+async def availability(request: Request, response: Response):
+    if check_authorization(request):
+        ctx = {
+            'request': request,
+            'availabilities': scoreboard.availabilities,
+        }
+        return templates.TemplateResponse('availability.html', ctx)
+    else:
+        response.status_code=302
+        response.headers['location'] = 'login'
+        return response
+
+
+@app.get('/')
+@app.get('/scoreboard')
+@app.get('/scoreboard.html')
+async def scoreboard(request: Request, response: Response):
+    if check_authorization(request):
+        ctx = {
+            'request': request,
+            'scores': scoreboard.scores,
+        }
+        return templates.TemplateResponse('scoreboard.html', ctx)
+    else:
+        response.status_code=302
+        response.headers['location'] = 'login'
+        return response
+
+
+@app.get('/logout')
+@app.get('/logout.html')
+async def logout(response: Response):
+    response.status_code=302
+    response.headers['location'] = 'login'
+    response.delete_cookie(key='supersecuretoken')
+    return response
+
 
 scoreboard = Scoreboard()
+
+if __name__ == '__main__':
+    uvicorn.run('main:app', host='0.0.0.0', port=80)
