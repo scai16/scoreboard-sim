@@ -9,8 +9,8 @@ from time import time
 
 
 app = FastAPI(
-    docs_url=None,
-    redoc_url=None,
+    # docs_url=None,
+    # redoc_url=None,
 )
 app.mount('/static', StaticFiles(directory='static'), name='static')
 templates = Jinja2Templates(directory='templates')
