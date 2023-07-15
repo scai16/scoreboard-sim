@@ -197,7 +197,7 @@ async def start_simulation():
     if now.minute or now.second:
         start_time = now.replace(minute=0, second=0, microsecond=0) \
                      + timedelta(hours=1)
-        delay = (start_time - now).seconds
+        delay = (start_time - now).seconds + 1
         startftime = start_time.strftime('%Y-%m-%d %X UTC+00:00')
         delayftime = f'{delay//60:02d}:{delay%60:02d}'
         logging.info(f"Starting simulation in {delayftime} at {startftime}")
